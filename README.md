@@ -257,6 +257,9 @@ trace($params)[
 ### 一个简单的 serve 的 demo
 
 ```javascript
+const FS = reqiore('node:fs')
+const Path = reqiore('node:path')
+
 let {
     web_root = '',
     serverPort = 50000,
@@ -288,7 +291,7 @@ let {
         option: 'c',
         msg: '配置文件(json文件)',
         format: 'path',
-        test: v => g.path.extname(v) === '.json' && g.fs.existsSync(v),
+        test: v => Path.extname(v) === '.json' && FS.existsSync(v),
     },
 ])
 

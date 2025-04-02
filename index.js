@@ -1,24 +1,23 @@
-require('nodelib2-utils')
 const Path = require('node:path')
 const exec = require('child_process').exec
 const { CSI } = require('./lib/CSI')
-const { isPath, isDirectory, isFile } = require('./lib/utils')
+const utils = require('./lib/utils')
 
-const MSG = { error: 31, success: 32, warn: 33, info: 36, note: 90 }.__map(v => s => `${CSI(v)}m${s}${CSI(39)}m`)
+const MSG = Object.entries({ error: 31, success: 32, warn: 33, info: 36, note: 90 }).reduce(
+    (m, v) => ((m[v[0]] = s => `${CSI(v[1])}m${s}${CSI(39)}m`), m),
+    {}
+)
 
 const commandFormat = {
-    url: v => /^https{0,1}:\/\/[^\s]+$/.test(v),
-    path: isPath,
-    num: isNum,
-    dir: isDirectory,
-    file: isFile,
+    url: v => URL.canParse(v),
+    path: utils.isPath,
+    num: utils.isNum,
+    dir: utils.isDirectory,
+    file: utils.isFile,
 }
 
-function __commander(...arg) {
-    let { description = '', paramRules = [] } = Function.getParamsWith(
-        ['description:string,paramRules:any[]', 'paramRules:any[]'],
-        arg
-    )
+function __commander(description = '', paramRules) {
+    !paramRules && ((paramRules = description), (description = ''))
     let ruleHash = { '$': createRuleItem({ description, cmd: '$' }) },
         result = {},
         params = [],
@@ -96,7 +95,7 @@ function __commander(...arg) {
         if (helpOptionList.includes(item)) {
             continue
         }
-        let optionMatch = options.match(v => reg_o(v.option, v.alias).test(item) && v)
+        let optionMatch = utils.match(options, v => reg_o(v.option, v.alias).test(item) && v)
         if (optionMatch) {
             ;({ name, format, option } = optionMatch)
             if (format && format == 'bool') {
@@ -119,7 +118,7 @@ function __commander(...arg) {
         }
         if (name) {
             if (result[name] && option) {
-                trace(
+                console.warn(
                     MSG.warn('The same parameters will be replaced by the values inputted later: '),
                     `-${option} ${item}`
                 )
@@ -135,19 +134,19 @@ function __commander(...arg) {
         .concat(...options)
         .forEach(({ name, test, format, msg, option, required, values }) => {
             if (required && !result.hasOwnProperty(name)) {
-                trace(MSG.error('error: '), `not found`, MSG.error(name), msg ? `(${msg})` : '')
-                trace('use --help for more info.')
+                console.error(MSG.error('error: '), `not found`, MSG.error(name), msg ? `(${msg})` : '')
+                console.error('use --help for more info.')
                 process.exit(1)
             }
             if (result.hasOwnProperty(name)) {
                 let val = result[name]
                 if (format && format != 'bool' && !commandFormat[format](val)) {
-                    trace(
+                    console.error(
                         MSG.error('wrong input: '),
                         MSG.error(option ? `-${option} ${val}` : val),
                         `(require ${msg || format})`
                     )
-                    trace('use --help for more info.')
+                    console.error('use --help for more info.')
                     process.exit(1)
                 }
                 if (
@@ -155,16 +154,16 @@ function __commander(...arg) {
                     ((test instanceof Function && !test(val, result, allParams)) ||
                         (test instanceof RegExp && !test.test(val, result, allParams)))
                 ) {
-                    trace(
+                    console.error(
                         MSG.error('invalid input: '),
                         MSG.error(option ? `-${option} ${val}` : val),
                         msg ? `(${msg})` : ''
                     )
-                    trace('use --help for more info.')
+                    console.error('use --help for more info.')
                     process.exit(1)
                 }
                 if (values && !values[val]) {
-                    trace(MSG.error(`${name} can only be:`), values.__keys.join(', '), msg ? `(${msg})` : '')
+                    console.error(MSG.error(`${name} can only be:`), values.__keys.join(', '), msg ? `(${msg})` : '')
                     process.exit(1)
                 }
             }
@@ -248,8 +247,9 @@ function __commander(...arg) {
     function showUsage(cmd, ruleItem) {
         setRule(ruleItem)
 
-        description && trace(`${currCmd != '$' || ruleItem.cmd == '$' ? '' : MSG.success(cmd + ' ')}${description}\n`)
-        trace(
+        description &&
+            console.log(`${currCmd != '$' || ruleItem.cmd == '$' ? '' : MSG.success(cmd + ' ')}${description}\n`)
+        console.log(
             MSG.info('  Usage: '),
             cmd,
             ...params.map(v => (v.required ? MSG.warn(v.name) : MSG.note(`[${v.name}]`))),
@@ -265,25 +265,25 @@ function __commander(...arg) {
             ])
             helpOptionList.length > 0 && tempOptions.push([helpOptionList.join(', '), 'show Usage'])
             let longestNameLen = Math.max(...tempOptions.map(v => v[0].length), ...params.map(v => v.name.length)) + 4
-            ;(params.length > 0 || options.length > 0) && trace('')
+            ;(params.length > 0 || options.length > 0) && console.log('')
             params.forEach((v, i) => {
                 splitLine(v.msg || ' ').forEach((mv, mi) => {
-                    trace(
+                    console.log(
                         i == 0 && mi == 0 ? MSG.note(' Params: ') : '\t ',
                         (mi == 0 ? v.name : '').padEnd(longestNameLen),
                         mv
                     )
                     if (v.values && typeof v.values == 'object' && v.values.__keys.length > 0) {
                         v.values.__forEach((val, valDesc) => {
-                            trace('\t', ''.padEnd(longestNameLen - 7), `=>      ${val} ${valDesc}`)
+                            console.log('\t', ''.padEnd(longestNameLen - 7), `=>      ${val} ${valDesc}`)
                         })
-                        trace()
+                        console.log()
                     }
                 })
             })
             tempOptions.forEach(([a, b], i) => {
                 splitLine(b).forEach((bv, bi) => {
-                    trace(
+                    console.log(
                         i == 0 && bi == 0 ? MSG.note('OPTIONS: ') : '\t ',
                         (bi == 0 ? a : '').padEnd(longestNameLen),
                         bv
@@ -291,10 +291,10 @@ function __commander(...arg) {
                 })
             })
         }
-        trace('')
-        trace(MSG.note('Example:'))
+        console.log('')
+        console.log(MSG.note('Example:'))
         if (params.some(v => !v.required)) {
-            trace(
+            console.log(
                 `$`,
                 cmd,
                 params
@@ -303,7 +303,7 @@ function __commander(...arg) {
                     .join(' ')
             )
         }
-        trace(`$`, cmd, params.map(v => hl(v.name)).join(' '))
+        console.log(`$`, cmd, params.map(v => hl(v.name)).join(' '))
         if (options.length > 0) {
             let traceList = [
                 `$`,
@@ -317,7 +317,7 @@ function __commander(...arg) {
                         .map(v => v.option)
                         .join(''),
             ]
-            trace(...traceList)
+            console.log(...traceList)
             if (params.some(v => !v.required)) {
                 let traceList = [
                     `$`,
@@ -331,10 +331,10 @@ function __commander(...arg) {
                             .map(v => v.option)
                             .join(''),
                 ]
-                trace(...traceList)
+                console.log(...traceList)
             }
         }
-        trace('\n')
+        console.log('\n')
     }
     function splitLine(s, len = 60) {
         if (process.stdout.columns > 150) {

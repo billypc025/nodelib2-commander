@@ -27,5 +27,5 @@ if (output_file) {
     FS.writeFileSync(output_file, JSON.stringify(files.join('\n')))
 } else {
     // 在终端输出
-    trace(files.join('\n'))
+    console.log(files.join('\n'))
 }

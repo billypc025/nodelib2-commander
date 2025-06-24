@@ -1,6 +1,6 @@
 {
     "name": "nodelib2-commander",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "一个轻量化node.js命令行工具开发包, 类似commander, 实现命令行解析、参数校验、自动生成help等最常用的功能.",
     "main": "index.js",
     "types": "index.d.ts",

@@ -70,13 +70,16 @@ function __commander(description = '', paramRules) {
 
     if (
         (thisArgs.length == 0 && params.length > 0 && params.some(v => v.required)) ||
-        (thisArgs.length == 0 && params.length == 0 && ruleHash.__keys.length > 1) ||
+        (thisArgs.length == 0 &&
+            params.length > 0 &&
+            params.some(v => v.required) &&
+            Object.keys(ruleHash).length > 1) ||
         (thisArgs.length == 1 && ['-h', '--help'].includes(thisArgs[0]))
     ) {
         let jsCmd = Path.basename(entry)
         let cmd = Path.dirname(node) == Path.dirname(entry) ? jsCmd : `node ${jsCmd}`
         currCmd != '$' && (cmd += ` ${currCmd}`)
-        let subcommands = Object.keys(ruleHash).removeItem('$')
+        let subcommands = Object.keys(ruleHash).filter(v => v !== '$')
         showUsage(cmd, ruleHash[currCmd])
         if (subcommands.length > 0 && currCmd == '$') {
             for (let subcmd of subcommands) {
@@ -163,7 +166,11 @@ function __commander(description = '', paramRules) {
                     process.exit(1)
                 }
                 if (values && !values[val]) {
-                    console.error(MSG.error(`${name} can only be:`), values.__keys.join(', '), msg ? `(${msg})` : '')
+                    console.error(
+                        MSG.error(`${name} can only be:`),
+                        Object.keys(values).join(', '),
+                        msg ? `(${msg})` : ''
+                    )
                     process.exit(1)
                 }
             }
@@ -273,7 +280,7 @@ function __commander(description = '', paramRules) {
                         (mi == 0 ? v.name : '').padEnd(longestNameLen),
                         mv
                     )
-                    if (v.values && typeof v.values == 'object' && v.values.__keys.length > 0) {
+                    if (v.values && typeof v.values == 'object' && Object.keys(v.values).length > 0) {
                         v.values.__forEach((val, valDesc) => {
                             console.log('\t', ''.padEnd(longestNameLen - 7), `=>      ${val} ${valDesc}`)
                         })
@@ -345,7 +352,7 @@ function __commander(description = '', paramRules) {
         let lines = ['']
         let lineLen = 0
         s.split('').forEach(v => {
-            let l = getBytesLen(v)
+            let l = utils.getBytesLen(v)
             if (lineLen + l <= len) {
                 lines.last += v
                 lineLen += l

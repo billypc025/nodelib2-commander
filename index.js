@@ -16,7 +16,7 @@ const commandFormat = {
     file: utils.isFile,
 }
 
-function __commander(description = '', paramRules) {
+function __commander(description, paramRules) {
     !paramRules && ((paramRules = description), (description = ''))
     let ruleHash = { '$': createRuleItem({ description, cmd: '$' }) },
         result = {},
@@ -76,17 +76,7 @@ function __commander(description = '', paramRules) {
             Object.keys(ruleHash).length > 1) ||
         (thisArgs.length == 1 && ['-h', '--help'].includes(thisArgs[0]))
     ) {
-        let jsCmd = Path.basename(entry)
-        let cmd = Path.dirname(node) == Path.dirname(entry) ? jsCmd : `node ${jsCmd}`
-        currCmd != '$' && (cmd += ` ${currCmd}`)
-        let subcommands = Object.keys(ruleHash).filter(v => v !== '$')
-        showUsage(cmd, ruleHash[currCmd])
-        if (subcommands.length > 0 && currCmd == '$') {
-            for (let subcmd of subcommands) {
-                showUsage(`${cmd} ${subcmd}`, ruleHash[subcmd])
-            }
-        }
-        process.exit()
+        showHelp()
     }
     let tempParams = [...params]
     let allParams = []
@@ -176,6 +166,7 @@ function __commander(description = '', paramRules) {
             }
         })
     result.$params = allParams
+    result.$showHelp = showHelp
     return result
 
     function add_(o) {
@@ -363,6 +354,19 @@ function __commander(description = '', paramRules) {
             }
         })
         return lines
+    }
+    function showHelp() {
+        let jsCmd = Path.basename(entry)
+        let cmd = Path.dirname(node) == Path.dirname(entry) ? jsCmd : `node ${jsCmd}`
+        currCmd != '$' && (cmd += ` ${currCmd}`)
+        let subcommands = Object.keys(ruleHash).filter(v => v !== '$')
+        showUsage(cmd, ruleHash[currCmd])
+        if (subcommands.length > 0 && currCmd == '$') {
+            for (let subcmd of subcommands) {
+                showUsage(`${cmd} ${subcmd}`, ruleHash[subcmd])
+            }
+        }
+        process.exit()
     }
 }
 

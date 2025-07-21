@@ -4,7 +4,7 @@
 
 ## Features
 
--   自动生成 Usage, `-h`,`--help` 查看 Usage
+-   自动生成 Usage, `-h`,`--help` 查看 Usage, 代码调用显示 Help
 -   支持 `child-cmd`, 及嵌套
 -   支持 `alias`
 -   可配置参数的缺省值
@@ -96,20 +96,31 @@ package.json
 #### `__commander(...)`
 
 ```typescript
-function __commander(
+export function __commander(
     description: string,
     paramRules: CmdParamRules[]
-): { $params: string[]; $cmd?: string; [paramName: string]: string }
-
-function __commander(paramRules: CmdParamRules[]): {
+): {
     /**
      * 所有输入参数的数组
      */
     $params: string[]
     /**
-     * 如果当前是子命令, 返回子命令名称
+     * 当前子命令 (主命令值为'$')
      */
     $cmd?: string
+    /**
+     * 手动调用显示help
+     */
+    $showHelp: Function
+    /**
+     * 参数和选项键值对
+     */
+    [paramName: string]: string
+}
+export function __commander(paramRules: CmdParamRules[]): {
+    $params: string[]
+    $cmd?: string
+    $showHelp: Function
     [paramName: string]: string
 }
 ```
@@ -315,6 +326,12 @@ OPTIONS:  -p <serverPort>      端口号(50000-59999)
 $> openthis {wrong-path}
 invalid input:  {wrong-path} (网站根目录(默认以当前目录作为站点))
 use --help for more info.
+```
+
+```javascript
+//某些情况下，需要手动调用显示help
+const { $showHelp } = __commander(...)
+$showHelp() // 将会显示对应命令的help
 ```
 
 #### imgthis 图片转换工具的命令行生成示例

@@ -137,19 +137,50 @@ type CmdParamRules =
  * //如需自定义Usage, 只需要配置-h、--help参数选项并在主程序中处理即可
  * {name: 'help', option: 'h', alias:'help'}
  *
+ * @example
+ * 
+ * 手动调用显示help
+ * 
+ * const { $showHelp } = __commander(...)
+ * $showHelp() // 将会显示对应命令的help
+ *
  */
 export function __commander(
     description: string,
     paramRules: CmdParamRules[]
-): { $params: string[]; $cmd?: string; [paramName: string]: string }
+): {
+    /**
+     * 所有输入参数的数组
+     */
+    $params: string[]
+    /**
+     * 当前子命令 (主命令值为'$')
+     */
+    $cmd?: string
+    /**
+     * 手动调用显示help
+     */
+    $showHelp: Function
+    /**
+     * 参数和选项键值对
+     */
+    [paramName: string]: string
+}
 export function __commander(paramRules: CmdParamRules[]): {
     /**
      * 所有输入参数的数组
      */
     $params: string[]
     /**
-     * 如果当前是子命令, 返回子命令名称
+     * 当前子命令 (主命令值为'$')
      */
     $cmd?: string
+    /**
+     * 手动调用显示help
+     */
+    $showHelp: Function
+    /**
+     * 参数和选项键值对
+     */
     [paramName: string]: string
 }

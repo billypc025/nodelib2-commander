@@ -74,7 +74,9 @@ function __commander(description, paramRules) {
             params.length > 0 &&
             params.some(v => v.required) &&
             Object.keys(ruleHash).length > 1) ||
-        (thisArgs.length == 1 && ['-h', '--help'].includes(thisArgs[0]))
+        (thisArgs.length == 1 &&
+            ['-h', '--help'].includes(thisArgs[0]) &&
+            !options.find(v => ['help', 'h'].includes(v.option) || ['help', 'h'].includes(v.alias)))
     ) {
         showHelp()
     }

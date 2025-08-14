@@ -311,11 +311,11 @@ function __commander(description, paramRules) {
                 ...params.filter(v => v.required).map(v => hl(v.name)),
                 ...options.filter(v => v.format != 'bool').map(v => `${add_(v.option)} ${hl(v.name)}`),
                 ...options.filter(v => v.format == 'bool' && !getChar(v.option, v.alias)).map(v => add_(v.option)),
-                '-' +
-                    options
-                        .filter(v => v.format == 'bool' && getChar(v.option, v.alias))
-                        .map(v => v.option)
-                        .join(''),
+                options
+                    .filter(v => v.format == 'bool' && getChar(v.option, v.alias))
+                    .map(v => `-${v.option}`)
+                    .join('')
+                    .replace(/(?<!^)-/g, ''),
             ]
             console.log(...traceList)
             if (params.some(v => !v.required)) {
@@ -325,11 +325,11 @@ function __commander(description, paramRules) {
                     ...params.map(v => hl(v.name)),
                     ...options.filter(v => v.format != 'bool').map(v => `${add_(v.option)} ${hl(v.name)}`),
                     ...options.filter(v => v.format == 'bool' && !getChar(v.option, v.alias)).map(v => add_(v.option)),
-                    '-' +
-                        options
-                            .filter(v => v.format == 'bool' && getChar(v.option, v.alias))
-                            .map(v => v.option)
-                            .join(''),
+                    options
+                        .filter(v => v.format == 'bool' && getChar(v.option, v.alias))
+                        .map(v => `-${v.option}`)
+                        .join('')
+                        .replace(/(?<!^)-/g, ''),
                 ]
                 console.log(...traceList)
             }

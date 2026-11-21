@@ -1,4 +1,4 @@
-type CmdParam = {
+export type CmdParam = {
     /**
      * 参数名称 / 选项名称
      */
@@ -40,7 +40,7 @@ type CmdParam = {
     values?: { [key: string]: string }
 }
 
-type CmdParamRules =
+export type CmdParamRules =
     | CmdParam
     | string
     | {
@@ -138,16 +138,16 @@ type CmdParamRules =
  * {name: 'help', option: 'h', alias:'help'}
  *
  * @example
- * 
+ *
  * 手动调用显示help
- * 
+ *
  * const { $showHelp } = __commander(...)
  * $showHelp() // 将会显示对应命令的help
  *
  */
 export function __commander(
     description: string,
-    paramRules: CmdParamRules[]
+    paramRules: CmdParamRules[],
 ): {
     /**
      * 所有输入参数的数组
@@ -159,8 +159,10 @@ export function __commander(
     $cmd?: string
     /**
      * 手动调用显示help
+     * @param autoExit 自动结束进程(默认:true)
+     * @returns
      */
-    $showHelp: Function
+    $showHelp: (autoExit: boolean) => void
     /**
      * 参数和选项键值对
      */
@@ -177,8 +179,10 @@ export function __commander(paramRules: CmdParamRules[]): {
     $cmd?: string
     /**
      * 手动调用显示help
+     * @param autoExit 自动结束进程(默认:true)
+     * @returns
      */
-    $showHelp: Function
+    $showHelp: (autoExit: boolean) => void
     /**
      * 参数和选项键值对
      */

@@ -5,7 +5,7 @@ const utils = require('./lib/utils')
 
 const MSG = Object.entries({ error: 31, success: 32, warn: 33, info: 36, note: 90 }).reduce(
     (m, v) => ((m[v[0]] = s => `${CSI(v[1])}m${s}${CSI(39)}m`), m),
-    {}
+    {},
 )
 
 const commandFormat = {
@@ -68,15 +68,15 @@ function __commander(description, paramRules) {
         groupOptionRegExp = new RegExp(`^-([${groupOptionHashKeys.join('')}]{2,})$`)
     }
 
+    const helpOption = options.find(v => ['help', 'h'].includes(v.option) && v.format == 'bool')
+    const willHelpInMain = thisArgs.some(v => helpOptionList.includes(v)) && !!helpOption
     if (
         (thisArgs.length == 0 && params.length > 0 && params.some(v => v.required)) ||
         (thisArgs.length == 0 &&
             params.length > 0 &&
             params.some(v => v.required) &&
             Object.keys(ruleHash).length > 1) ||
-        (thisArgs.length == 1 &&
-            ['-h', '--help'].includes(thisArgs[0]) &&
-            !options.find(v => ['help', 'h'].includes(v.option) && v.format == 'bool'))
+        (thisArgs.length == 1 && ['-h', '--help'].includes(thisArgs[0]) && !helpOption)
     ) {
         showHelp()
     }
@@ -87,7 +87,7 @@ function __commander(description, paramRules) {
             name,
             format,
             option
-        if (helpOptionList.includes(item)) {
+        if (!willHelpInMain && helpOptionList.includes(item)) {
             continue
         }
         let optionMatch = utils.match(options, v => reg_o(v.option, v.alias).test(item) && v)
@@ -115,7 +115,7 @@ function __commander(description, paramRules) {
             if (result[name] && option) {
                 console.warn(
                     MSG.warn('The same parameters will be replaced by the values inputted later: '),
-                    `-${option} ${item}`
+                    `-${option} ${item}`,
                 )
             }
             result[name] = item
@@ -128,23 +128,24 @@ function __commander(description, paramRules) {
         .concat(...params)
         .concat(...options)
         .forEach(({ name, test, format, msg, option, required, values }) => {
-            if (required && !result.hasOwnProperty(name)) {
+            if (!willHelpInMain && required && !result.hasOwnProperty(name)) {
                 console.error(MSG.error('error: '), `not found`, MSG.error(name), msg ? `(${msg})` : '')
                 console.error('use --help for more info.')
                 process.exit(1)
             }
             if (result.hasOwnProperty(name)) {
                 let val = result[name]
-                if (format && format != 'bool' && !commandFormat[format](val)) {
+                if (!willHelpInMain && format && format != 'bool' && !commandFormat[format](val)) {
                     console.error(
                         MSG.error('wrong input: '),
                         MSG.error(option ? `-${option} ${val}` : val),
-                        `(require ${msg || format})`
+                        `(require ${msg || format})`,
                     )
                     console.error('use --help for more info.')
                     process.exit(1)
                 }
                 if (
+                    !willHelpInMain &&
                     test &&
                     ((test instanceof Function && !test(val, result, allParams)) ||
                         (test instanceof RegExp && !test.test(val, result, allParams)))
@@ -152,16 +153,16 @@ function __commander(description, paramRules) {
                     console.error(
                         MSG.error('invalid input: '),
                         MSG.error(option ? `-${option} ${val}` : val),
-                        msg ? `(${msg})` : ''
+                        msg ? `(${msg})` : '',
                     )
                     console.error('use --help for more info.')
                     process.exit(1)
                 }
-                if (values && !values[val]) {
+                if (!willHelpInMain && values && !values[val]) {
                     console.error(
                         MSG.error(`${name} can only be:`),
                         Object.keys(values).join(', '),
-                        msg ? `(${msg})` : ''
+                        msg ? `(${msg})` : '',
                     )
                     process.exit(1)
                 }
@@ -177,7 +178,7 @@ function __commander(description, paramRules) {
     function reg_o(o, a) {
         return new RegExp(`^${!a ? add_(o) : `(${add_(o)}|${add_(a)})`}$`)
     }
-    function hl(s, c = 17) {
+    function hl(s, c = 24) {
         return `${CSI(`38;5;${c}m`)}{${s}}${CSI('39m')}`
     }
     function getChar(o, a) {
@@ -207,6 +208,7 @@ function __commander(description, paramRules) {
     }
     function addRule(ruleObj, rule) {
         let { options, params, helpOptionList, groupOptionHash, result } = ruleObj
+        helpOptionList = [...helpOptionList]
         let { name, option, format, test, msg, alias, required = true, values } = rule
         if (!name) {
             return
@@ -252,8 +254,9 @@ function __commander(description, paramRules) {
         console.log(
             MSG.info('  Usage: '),
             cmd,
-            ...params.map(v => (v.required ? MSG.warn(v.name) : MSG.note(`[${v.name}]`))),
-            options.length > 0 ? MSG.note('[OPTIONS]') : ''
+            // ...params.map(v => (v.required ? MSG.warn(v.name) : MSG.note(`[${v.name}]`))),
+            ...params.map(v => (v.required ? `<${v.name}>` : MSG.note(`[${v.name}]`))),
+            options.length > 0 ? MSG.note('[OPTIONS]') : '',
         )
 
         if (params.length + options.length > 0) {
@@ -269,9 +272,9 @@ function __commander(description, paramRules) {
             params.forEach((v, i) => {
                 splitLine(v.msg || ' ').forEach((mv, mi) => {
                     console.log(
-                        i == 0 && mi == 0 ? MSG.note(' Params: ') : '\t ',
+                        i == 0 && mi == 0 ? MSG.info(' Params: ') : '\t ',
                         (mi == 0 ? v.name : '').padEnd(longestNameLen),
-                        mv
+                        mv,
                     )
                     if (v.values && typeof v.values == 'object' && Object.keys(v.values).length > 0) {
                         v.values.__forEach((val, valDesc) => {
@@ -284,15 +287,15 @@ function __commander(description, paramRules) {
             tempOptions.forEach(([a, b], i) => {
                 splitLine(b).forEach((bv, bi) => {
                     console.log(
-                        i == 0 && bi == 0 ? MSG.note('OPTIONS: ') : '\t ',
+                        i == 0 && bi == 0 ? MSG.info('OPTIONS: ') : '\t ',
                         (bi == 0 ? a : '').padEnd(longestNameLen),
-                        bv
+                        bv,
                     )
                 })
             })
         }
         console.log('')
-        console.log(MSG.note('Example:'))
+        console.log(MSG.info('Example:'))
         if (params.some(v => !v.required)) {
             console.log(
                 `$`,
@@ -300,7 +303,7 @@ function __commander(description, paramRules) {
                 params
                     .filter(v => v.required)
                     .map(v => hl(v.name))
-                    .join(' ')
+                    .join(' '),
             )
         }
         console.log(`$`, cmd, params.map(v => hl(v.name)).join(' '))
@@ -357,7 +360,7 @@ function __commander(description, paramRules) {
         })
         return lines
     }
-    function showHelp() {
+    function showHelp(autoExit = true) {
         let jsCmd = Path.basename(entry)
         let cmd = Path.dirname(node) == Path.dirname(entry) ? jsCmd : `node ${jsCmd}`
         currCmd != '$' && (cmd += ` ${currCmd}`)
@@ -368,7 +371,7 @@ function __commander(description, paramRules) {
                 showUsage(`${cmd} ${subcmd}`, ruleHash[subcmd])
             }
         }
-        process.exit()
+        autoExit && process.exit()
     }
 }
 
